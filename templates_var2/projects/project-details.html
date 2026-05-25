@@ -55,30 +55,40 @@
                data-url="/projects/{{ project.id }}">
                 {% include 'includes/svg/share.html' %}
             </a>
-            {% if user.id == project.owner.id %}
+
+            {% if user.id == project.owner.id or user.is_staff %}
                 <a href="/projects/{{ project.id }}/edit" class="black-button">
                     {% include 'includes/svg/pen.html' %}
                     Редактировать
                 </a>
+
                 {% if project.status == "open" %}
-                    <button class="black-button" id="complete-project-btn" data-id="{{ project.id }}">
-                        Завершить проект
-                    </button>
+                    <form method="post"
+                          action="/projects/{{ project.id }}/complete"
+                          class="inline-action-form">
+                        {% csrf_token %}
+                        <button type="submit" class="black-button">
+                            Завершить проект
+                        </button>
+                    </form>
                 {% endif %}
             {% else %}
                 {% if user.is_authenticated %}
-                    <button id="participate-btn" class="black-button"
-                            data-project="{{ project.id }}"
-                            data-user-id="{{ request.user.id }}"
-                            data-user-name="{{ request.user.name }} {{ request.user.surname }}"
-                            data-user-avatar="{% if request.user.avatar %}{{ request.user.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}"
-                    >
-                        {% if request.user in project.participants.all %}
-                            Отказаться от участия
-                        {% else %}
-                            Участвовать
+                    <form method="post"
+                          action="/projects/{{ project.id }}/participate"
+                          class="inline-action-form">
+                        {% csrf_token %}
+
+                        {% if user in project.participants.all %}
+                            <button type="submit" class="black-button">
+                                Отказаться от участия
+                            </button>
+                        {% elif project.status == "open" %}
+                            <button type="submit" class="black-button">
+                                Присоединиться к проекту
+                            </button>
                         {% endif %}
-                    </button>
+                    </form>
                 {% endif %}
             {% endif %}
         </div>

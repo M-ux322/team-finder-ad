@@ -46,8 +46,11 @@
     {% endif %}
 
     <div class="form-actions">
-      <a href="/" class="cancel-button">Отмена</a>
-      <button type="submit" class="save-button">{% if is_edit %}Сохранить{% else %}Опубликовать{% endif %}</button>
+      {% if is_edit %}
+        <a href="/projects/{{ project.id }}" class="cancel-button">Отмена</a>
+      {% else %}
+        <a href="/users/{{ request.user.id }}/" class="cancel-button">Отмена</a>
+      {% endif %}      <button type="submit" class="save-button">{% if is_edit %}Сохранить{% else %}Опубликовать{% endif %}</button>
     </div>
   </form>
 </div>
