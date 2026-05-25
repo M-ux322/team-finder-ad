@@ -4,6 +4,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
+from django.core.paginator import Paginator
 
 from .forms import LoginForm, ProfileEditForm, RegistrationForm
 from .models import User, Skill
@@ -64,6 +65,37 @@ def profile_view(request, user_id):
         {
             "profile_user": profile_user,
             "is_owner": is_owner,
+        },
+    )
+
+
+def participants_list_view(request):
+
+    active_skill = request.GET.get("skill", "").strip()
+
+    participants = (
+        User.objects
+        .prefetch_related("skills")
+        .order_by("-date_joined")
+    )
+
+    if active_skill:
+        participants = participants.filter(
+            skills__name=active_skill
+        ).distinct()
+
+    all_skills = Skill.objects.order_by("name")
+
+    paginator = Paginator(participants, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "users/participants.html",
+        {
+            "page_obj": page_obj,
+            "all_skills": all_skills,
+            "active_skill": active_skill,
         },
     )
 

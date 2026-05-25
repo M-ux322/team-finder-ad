@@ -21,5 +21,6 @@ urlpatterns = [
         name="remove_skill",
     ),
 
+    path("list", views.participants_list_view, name="participants_list"),
     path("<int:user_id>/", views.profile_view, name="profile"),
 ]
