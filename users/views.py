@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import LoginForm, RegistrationForm
+from .forms import LoginForm, ProfileEditForm, RegistrationForm
 from .models import User
 
 
@@ -73,4 +73,28 @@ def change_password_view(request):
         request,
         "users/change_password.html",
         {"form": form},
+    )
+
+@login_required
+def edit_profile_view(request):
+    if request.method == "POST":
+        form = ProfileEditForm(
+            request.POST,
+            request.FILES,
+            instance=request.user,
+        )
+
+        if form.is_valid():
+            form.save()
+            return redirect("users:profile", user_id=request.user.id)
+    else:
+        form = ProfileEditForm(instance=request.user)
+
+    return render(
+        request,
+        "users/edit_profile.html",
+        {
+            "form": form,
+            "user": request.user,
+        },
     )

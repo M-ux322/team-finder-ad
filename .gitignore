@@ -146,3 +146,6 @@ dmypy.json
 .ruff_cache/
 
 *.Identifier
+
+# Uploaded user files
+media/

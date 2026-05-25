@@ -98,3 +98,83 @@ class LoginForm(forms.Form):
 
     def get_user(self):
         return self.user
+
+class ProfileEditForm(forms.ModelForm):
+    name = forms.CharField(
+        label="Имя",
+        max_length=150,
+    )
+    surname = forms.CharField(
+        label="Фамилия",
+        max_length=150,
+    )
+    about = forms.CharField(
+        label="О себе",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 5}),
+    )
+    email = forms.EmailField(
+        label="Адрес электронной почты",
+    )
+    github_url = forms.URLField(
+        label="GitHub",
+        required=False,
+        widget=forms.URLInput(
+            attrs={"placeholder": "https://github.com/username"}
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "avatar",
+            "phone",
+        )
+        labels = {
+            "avatar": "Аватар",
+            "phone": "Телефон",
+        }
+        widgets = {
+            "avatar": forms.FileInput(),
+            "phone": forms.TextInput(
+                attrs={"placeholder": "+371 20000000"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.pk:
+            self.fields["name"].initial = self.instance.first_name
+            self.fields["surname"].initial = self.instance.last_name
+            self.fields["about"].initial = self.instance.bio
+            self.fields["email"].initial = self.instance.email
+            self.fields["github_url"].initial = self.instance.github
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+
+        duplicate_email = User.objects.filter(
+            email__iexact=email
+        ).exclude(pk=self.instance.pk)
+
+        if duplicate_email.exists():
+            raise forms.ValidationError(
+                "Пользователь с таким адресом электронной почты уже существует."
+            )
+
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+
+        user.first_name = self.cleaned_data["name"]
+        user.last_name = self.cleaned_data["surname"]
+        user.bio = self.cleaned_data["about"]
+        user.email = self.cleaned_data["email"]
+        user.github = self.cleaned_data["github_url"]
+
+        if commit:
+            user.save()
+
+        return user
