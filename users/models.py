@@ -92,3 +92,19 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.get_full_name() or self.email
+
+    @property
+    def name(self):
+        return self.first_name
+
+    @property
+    def surname(self):
+        return self.last_name
+
+    @property
+    def about(self):
+        return self.bio
+
+    @property
+    def github_url(self):
+        return self.github
