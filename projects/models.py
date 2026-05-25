@@ -1,3 +1,62 @@
+from django.conf import settings
 from django.db import models
 
-# Create your models here.
+
+class Project(models.Model):
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Открытый"
+        CLOSED = "closed", "Закрытый"
+
+    name = models.CharField(
+        "Название проекта",
+        max_length=200,
+    )
+    description = models.TextField(
+        "Описание проекта",
+        blank=True,
+    )
+    github_url = models.URLField(
+        "Ссылка на GitHub",
+        blank=True,
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=10,
+        choices=Status.choices,
+        default=Status.OPEN,
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Автор",
+        related_name="owned_projects",
+        on_delete=models.CASCADE,
+    )
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        verbose_name="Участники",
+        related_name="joined_projects",
+        blank=True,
+    )
+    favorites = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        verbose_name="В избранном у пользователей",
+        related_name="favorite_projects",
+        blank=True,
+    )
+    created_at = models.DateTimeField(
+        "Дата публикации",
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        "Дата обновления",
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Проект"
+        verbose_name_plural = "Проекты"
+
+    def __str__(self):
+        return self.name
