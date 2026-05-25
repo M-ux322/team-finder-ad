@@ -7,7 +7,11 @@ app_name = "projects"
 
 
 urlpatterns = [
+    path("", views.project_list_view, name="project_list"),
+    path("list", views.project_list_view, name="project_list_alias"),
+
     path("create-project", views.create_project_view, name="create"),
+
     path("<int:project_id>/edit", views.edit_project_view, name="edit"),
     path(
         "<int:project_id>/complete",

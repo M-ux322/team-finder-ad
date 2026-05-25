@@ -2,21 +2,39 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
 
 from .forms import ProjectForm
 from .models import Project
 
 
 def user_can_manage_project(user, project):
-    """Проверяет, может ли пользователь управлять проектом."""
     return user.is_authenticated and (
         user == project.owner or user.is_staff
+    )
+
+def project_list_view(request):
+
+    projects = (
+        Project.objects
+        .select_related("owner")
+        .order_by("-created_at")
+    )
+
+    paginator = Paginator(projects, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "projects/project_list.html",
+        {
+            "page_obj": page_obj,
+        },
     )
 
 
 @login_required
 def create_project_view(request):
-    """Создание нового проекта авторизованным пользователем."""
 
     if request.method == "POST":
         form = ProjectForm(request.POST)
@@ -44,7 +62,6 @@ def create_project_view(request):
 
 
 def project_detail_view(request, project_id):
-    """Публичная страница отдельного проекта."""
 
     project = get_object_or_404(
         Project.objects
@@ -64,7 +81,6 @@ def project_detail_view(request, project_id):
 
 @login_required
 def edit_project_view(request, project_id):
-    """Редактирование проекта его автором или администратором."""
 
     project = get_object_or_404(Project, id=project_id)
 
@@ -94,7 +110,6 @@ def edit_project_view(request, project_id):
 @login_required
 @require_POST
 def complete_project_view(request, project_id):
-    """Закрывает проект. Доступно автору или администратору."""
 
     project = get_object_or_404(Project, id=project_id)
 
@@ -110,18 +125,15 @@ def complete_project_view(request, project_id):
 @login_required
 @require_POST
 def participate_project_view(request, project_id):
-    """Добавляет пользователя в участники проекта или убирает его."""
 
     project = get_object_or_404(
         Project.objects.select_related("owner"),
         id=project_id,
     )
 
-    # Автор всегда остаётся участником своего проекта.
     if request.user == project.owner:
         return redirect("projects:detail", project_id=project.id)
 
-    # В закрытый проект нельзя вступить, но уже вступивший может выйти.
     is_participant = project.participants.filter(id=request.user.id).exists()
 
     if is_participant:
