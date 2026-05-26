@@ -130,7 +130,7 @@ http://127.0.0.1:8000
 
 # Автор
 
-Ian Geraldo Luís Galvão
+Ермакова Мария Павловна
 
 GitHub:
 https://github.com/M-ux322
