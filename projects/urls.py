@@ -28,5 +28,5 @@ urlpatterns = [
         views.toggle_favorite_view,
         name="favorite",
     ),
-    path("<int:project_id>", views.project_detail_view, name="detail"),
+    path("<int:project_id>/", views.project_detail_view, name="detail"),
 ]
