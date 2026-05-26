@@ -268,3 +268,20 @@
     color: white;
     border-color: #333;
 }
+
+.favorite-form {
+    margin: 0;
+}
+
+.favorite-button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 28px;
+    line-height: 1;
+    padding: 0;
+}
+
+.favorite-button:hover {
+    transform: scale(1.08);
+}

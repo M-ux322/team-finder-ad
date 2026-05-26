@@ -17,7 +17,9 @@ def project_list_view(request):
 
     projects = (
         Project.objects
+        .filter(status=Project.Status.OPEN)
         .select_related("owner")
+        .prefetch_related("participants", "favorites")
         .order_by("-created_at")
     )
 
@@ -66,7 +68,7 @@ def project_detail_view(request, project_id):
     project = get_object_or_404(
         Project.objects
         .select_related("owner")
-        .prefetch_related("participants"),
+        .prefetch_related("participants", "favorites"),
         id=project_id,
     )
 
@@ -77,7 +79,6 @@ def project_detail_view(request, project_id):
             "project": project,
         },
     )
-
 
 @login_required
 def edit_project_view(request, project_id):
@@ -140,5 +141,24 @@ def participate_project_view(request, project_id):
         project.participants.remove(request.user)
     elif project.status == Project.Status.OPEN:
         project.participants.add(request.user)
+
+    return redirect("projects:detail", project_id=project.id)
+
+@login_required
+@require_POST
+def toggle_favorite_view(request, project_id):
+    """Добавляет проект в избранное или удаляет его оттуда."""
+
+    project = get_object_or_404(Project, id=project_id)
+
+    if project.favorites.filter(id=request.user.id).exists():
+        project.favorites.remove(request.user)
+    else:
+        project.favorites.add(request.user)
+
+    next_url = request.POST.get("next")
+
+    if next_url:
+        return redirect(next_url)
 
     return redirect("projects:detail", project_id=project.id)

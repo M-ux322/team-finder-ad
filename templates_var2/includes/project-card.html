@@ -1,6 +1,25 @@
 {% load static %}
 
 <div class="project-card">
+    {% if request.user.is_authenticated %}
+    <form method="post"
+          action="/projects/{{ project.id }}/favorite"
+          class="favorite-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+        <button type="submit"
+                class="favorite-button"
+                aria-label="Добавить в избранное"
+                title="Добавить в избранное">
+            {% if request.user in project.favorites.all %}
+                ♥
+            {% else %}
+                ♡
+            {% endif %}
+        </button>
+    </form>
+    {% endif %}
     <div class="project-card-header-title">
         <div class="project-card-header">
             <div class="project-owner-grid">

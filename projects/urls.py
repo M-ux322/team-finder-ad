@@ -23,5 +23,10 @@ urlpatterns = [
         views.participate_project_view,
         name="participate",
     ),
+    path(
+        "<int:project_id>/favorite",
+        views.toggle_favorite_view,
+        name="favorite",
+    ),
     path("<int:project_id>", views.project_detail_view, name="detail"),
 ]
