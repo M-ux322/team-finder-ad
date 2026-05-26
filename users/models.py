@@ -74,6 +74,7 @@ class User(AbstractUser):
         max_length=12,
         blank=True,
         null=True,
+        unique=True,
     )
     github_url = models.URLField(
         "GitHub",
