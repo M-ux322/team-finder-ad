@@ -1,3 +1,6 @@
+import re
+from urllib.parse import urlparse
+
 from django import forms
 from django.contrib.auth import authenticate, password_validation
 from django.core.exceptions import ValidationError
@@ -5,15 +8,48 @@ from django.core.exceptions import ValidationError
 from .models import User
 
 
+def validate_github_url(value):
+
+    if not value:
+        return value
+
+    host = urlparse(value).netloc.lower()
+
+    if host not in {"github.com", "www.github.com"}:
+        raise forms.ValidationError(
+            "Укажите ссылку на профиль GitHub."
+        )
+
+    return value
+
+
+def normalize_phone(value):
+
+    if not value:
+        return None
+
+    phone = value.strip().replace(" ", "").replace("-", "")
+
+    if re.fullmatch(r"8\d{10}", phone):
+        return "+7" + phone[1:]
+
+    if re.fullmatch(r"\+7\d{10}", phone):
+        return phone
+
+    raise forms.ValidationError(
+        "Введите номер в формате 8XXXXXXXXXX или +7XXXXXXXXXX."
+    )
+
+
 class RegistrationForm(forms.Form):
     name = forms.CharField(
         label="Имя",
-        max_length=150,
+        max_length=124,
         widget=forms.TextInput(attrs={"placeholder": "Имя"}),
     )
     surname = forms.CharField(
         label="Фамилия",
-        max_length=150,
+        max_length=124,
         widget=forms.TextInput(attrs={"placeholder": "Фамилия"}),
     )
     email = forms.EmailField(
@@ -50,8 +86,8 @@ class RegistrationForm(forms.Form):
         return User.objects.create_user(
             email=self.cleaned_data["email"],
             password=self.cleaned_data["password"],
-            first_name=self.cleaned_data["name"],
-            last_name=self.cleaned_data["surname"],
+            name=self.cleaned_data["name"],
+            surname=self.cleaned_data["surname"],
         )
 
 
@@ -99,57 +135,41 @@ class LoginForm(forms.Form):
     def get_user(self):
         return self.user
 
-class ProfileEditForm(forms.ModelForm):
-    name = forms.CharField(
-        label="Имя",
-        max_length=150,
-    )
-    surname = forms.CharField(
-        label="Фамилия",
-        max_length=150,
-    )
-    about = forms.CharField(
-        label="О себе",
-        required=False,
-        widget=forms.Textarea(attrs={"rows": 5}),
-    )
-    email = forms.EmailField(
-        label="Адрес электронной почты",
-    )
-    github_url = forms.URLField(
-        label="GitHub",
-        required=False,
-        widget=forms.URLInput(
-            attrs={"placeholder": "https://github.com/username"}
-        ),
-    )
 
+class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = (
+            "name",
+            "surname",
             "avatar",
+            "about",
+            "email",
             "phone",
+            "github_url",
         )
         labels = {
+            "name": "Имя",
+            "surname": "Фамилия",
             "avatar": "Аватар",
+            "about": "О себе",
+            "email": "Адрес электронной почты",
             "phone": "Телефон",
+            "github_url": "GitHub",
         }
         widgets = {
+            "name": forms.TextInput(),
+            "surname": forms.TextInput(),
             "avatar": forms.FileInput(),
+            "about": forms.Textarea(attrs={"rows": 5}),
+            "email": forms.EmailInput(),
             "phone": forms.TextInput(
-                attrs={"placeholder": "+371 20000000"}
+                attrs={"placeholder": "+79991234567"}
+            ),
+            "github_url": forms.URLInput(
+                attrs={"placeholder": "https://github.com/username"}
             ),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.instance and self.instance.pk:
-            self.fields["name"].initial = self.instance.first_name
-            self.fields["surname"].initial = self.instance.last_name
-            self.fields["about"].initial = self.instance.bio
-            self.fields["email"].initial = self.instance.email
-            self.fields["github_url"].initial = self.instance.github
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
@@ -165,16 +185,24 @@ class ProfileEditForm(forms.ModelForm):
 
         return email
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
+    def clean_phone(self):
+        phone = normalize_phone(self.cleaned_data.get("phone"))
 
-        user.first_name = self.cleaned_data["name"]
-        user.last_name = self.cleaned_data["surname"]
-        user.bio = self.cleaned_data["about"]
-        user.email = self.cleaned_data["email"]
-        user.github = self.cleaned_data["github_url"]
+        if not phone:
+            return None
 
-        if commit:
-            user.save()
+        duplicate_phone = User.objects.filter(
+            phone=phone
+        ).exclude(pk=self.instance.pk)
 
-        return user
+        if duplicate_phone.exists():
+            raise forms.ValidationError(
+                "Пользователь с таким номером телефона уже существует."
+            )
+
+        return phone
+
+    def clean_github_url(self):
+        return validate_github_url(
+            self.cleaned_data.get("github_url")
+        )

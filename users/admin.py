@@ -10,8 +10,8 @@ class CustomUserAdmin(UserAdmin):
 
     list_display = (
         "email",
-        "first_name",
-        "last_name",
+        "name",
+        "surname",
         "is_active",
         "is_staff",
         "date_joined",
@@ -24,8 +24,8 @@ class CustomUserAdmin(UserAdmin):
     ordering = ("-date_joined",)
     search_fields = (
         "email",
-        "first_name",
-        "last_name",
+        "name",
+        "surname",
     )
     filter_horizontal = ("skills",)
 
@@ -35,12 +35,12 @@ class CustomUserAdmin(UserAdmin):
             "Личная информация",
             {
                 "fields": (
-                    "first_name",
-                    "last_name",
+                    "name",
+                    "surname",
                     "avatar",
-                    "bio",
+                    "about",
                     "phone",
-                    "github",
+                    "github_url",
                     "skills",
                 )
             },
@@ -67,8 +67,8 @@ class CustomUserAdmin(UserAdmin):
                 "classes": ("wide",),
                 "fields": (
                     "email",
-                    "first_name",
-                    "last_name",
+                    "name",
+                    "surname",
                     "password1",
                     "password2",
                     "is_active",

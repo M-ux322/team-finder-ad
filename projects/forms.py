@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from django import forms
 
 from .models import Project
@@ -33,3 +35,18 @@ class ProjectForm(forms.ModelForm):
             ),
             "status": forms.Select(),
         }
+
+    def clean_github_url(self):
+        github_url = self.cleaned_data.get("github_url")
+
+        if not github_url:
+            return github_url
+
+        host = urlparse(github_url).netloc.lower()
+
+        if host not in {"github.com", "www.github.com"}:
+            raise forms.ValidationError(
+                "Укажите ссылку на репозиторий GitHub."
+            )
+
+        return github_url
