@@ -153,7 +153,7 @@ def skill_search_view(request):
 
     skills = (
         Skill.objects
-        .filter(name__icontains=query)
+        .filter(name__istartswith=query)
         .order_by("name")
         .values("id", "name")[:10]
     )
