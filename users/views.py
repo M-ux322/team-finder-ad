@@ -1,46 +1,58 @@
-from django.contrib.auth import login, logout, update_session_auth_hash
+import json
+from http import HTTPStatus
+
+from django.contrib.auth import (
+    login,
+    logout,
+    update_session_auth_hash,
+)
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
-from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
-from django.core.paginator import Paginator
 
-from .forms import LoginForm, ProfileEditForm, RegistrationForm
-from .models import User, Skill
-import json
+from core.constants import SKILL_NAME_MAX_LENGTH, SKILL_SEARCH_LIMIT
+from core.services import paginate_queryset
+from users.forms import LoginForm, ProfileEditForm, RegistrationForm
+from users.models import Skill, User
 
 
 def register_view(request):
     if request.user.is_authenticated:
         return redirect("users:profile", user_id=request.user.id)
 
-    if request.method == "POST":
-        form = RegistrationForm(request.POST)
+    form = RegistrationForm(request.POST or None)
 
-        if form.is_valid():
-            form.save()
-            return redirect("users:login")
-    else:
-        form = RegistrationForm()
+    if form.is_valid():
+        form.save()
+        return redirect("users:login")
 
-    return render(request, "users/register.html", {"form": form})
+    return render(
+        request,
+        "users/register.html",
+        {"form": form},
+    )
 
 
 def login_view(request):
     if request.user.is_authenticated:
         return redirect("users:profile", user_id=request.user.id)
 
-    if request.method == "POST":
-        form = LoginForm(request, request.POST)
+    form = LoginForm(request, data=request.POST or None)
 
-        if form.is_valid():
-            login(request, form.get_user())
-            return redirect("users:profile", user_id=form.get_user().id)
-    else:
-        form = LoginForm(request)
+    if form.is_valid():
+        login(request, form.get_user())
+        return redirect(
+            "users:profile",
+            user_id=form.get_user().id,
+        )
 
-    return render(request, "users/login.html", {"form": form})
+    return render(
+        request,
+        "users/login.html",
+        {"form": form},
+    )
 
 
 def logout_view(request):
@@ -70,7 +82,6 @@ def profile_view(request, user_id):
 
 
 def participants_list_view(request):
-
     active_skill = request.GET.get("skill", "").strip()
 
     participants = (
@@ -81,19 +92,16 @@ def participants_list_view(request):
 
     if active_skill:
         participants = participants.filter(
-            skills__name=active_skill
+            skills__name=active_skill,
         ).distinct()
 
     all_skills = Skill.objects.order_by("name")
-
-    paginator = Paginator(participants, 12)
-    page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(
         request,
         "users/participants.html",
         {
-            "page_obj": page_obj,
+            "page_obj": paginate_queryset(request, participants),
             "all_skills": all_skills,
             "active_skill": active_skill,
         },
@@ -102,15 +110,19 @@ def participants_list_view(request):
 
 @login_required
 def change_password_view(request):
-    if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
+    form = PasswordChangeForm(
+        request.user,
+        request.POST or None,
+    )
 
-        if form.is_valid():
-            updated_user = form.save()
-            update_session_auth_hash(request, updated_user)
-            return redirect("users:profile", user_id=request.user.id)
-    else:
-        form = PasswordChangeForm(request.user)
+    if form.is_valid():
+        updated_user = form.save()
+        update_session_auth_hash(request, updated_user)
+
+        return redirect(
+            "users:profile",
+            user_id=request.user.id,
+        )
 
     return render(
         request,
@@ -118,20 +130,22 @@ def change_password_view(request):
         {"form": form},
     )
 
+
 @login_required
 def edit_profile_view(request):
-    if request.method == "POST":
-        form = ProfileEditForm(
-            request.POST,
-            request.FILES,
-            instance=request.user,
-        )
+    form = ProfileEditForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=request.user,
+    )
 
-        if form.is_valid():
-            form.save()
-            return redirect("users:profile", user_id=request.user.id)
-    else:
-        form = ProfileEditForm(instance=request.user)
+    if form.is_valid():
+        form.save()
+
+        return redirect(
+            "users:profile",
+            user_id=request.user.id,
+        )
 
     return render(
         request,
@@ -145,7 +159,6 @@ def edit_profile_view(request):
 
 @require_GET
 def skill_search_view(request):
-
     query = request.GET.get("q", "").strip()
 
     if not query:
@@ -155,7 +168,7 @@ def skill_search_view(request):
         Skill.objects
         .filter(name__istartswith=query)
         .order_by("name")
-        .values("id", "name")[:10]
+        .values("id", "name")[:SKILL_SEARCH_LIMIT]
     )
 
     return JsonResponse(list(skills), safe=False)
@@ -164,11 +177,10 @@ def skill_search_view(request):
 @login_required
 @require_POST
 def add_skill_view(request, user_id):
-
     if request.user.id != user_id:
         return JsonResponse(
             {"error": "Нельзя изменять навыки другого пользователя."},
-            status=403,
+            status=HTTPStatus.FORBIDDEN,
         )
 
     try:
@@ -176,7 +188,7 @@ def add_skill_view(request, user_id):
     except json.JSONDecodeError:
         return JsonResponse(
             {"error": "Некорректные данные запроса."},
-            status=400,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     skill_id = data.get("skill_id")
@@ -185,10 +197,10 @@ def add_skill_view(request, user_id):
     if skill_id:
         skill = get_object_or_404(Skill, id=skill_id)
     elif name:
-        if len(name) > 100:
+        if len(name) > SKILL_NAME_MAX_LENGTH:
             return JsonResponse(
                 {"error": "Название навыка слишком длинное."},
-                status=400,
+                status=HTTPStatus.BAD_REQUEST,
             )
 
         skill = Skill.objects.filter(name__iexact=name).first()
@@ -198,7 +210,7 @@ def add_skill_view(request, user_id):
     else:
         return JsonResponse(
             {"error": "Не указан навык."},
-            status=400,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     request.user.skills.add(skill)
@@ -214,11 +226,10 @@ def add_skill_view(request, user_id):
 @login_required
 @require_POST
 def remove_skill_view(request, user_id, skill_id):
-
     if request.user.id != user_id:
         return JsonResponse(
             {"error": "Нельзя изменять навыки другого пользователя."},
-            status=403,
+            status=HTTPStatus.FORBIDDEN,
         )
 
     skill = get_object_or_404(Skill, id=skill_id)

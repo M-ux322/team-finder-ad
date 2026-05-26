@@ -22,7 +22,6 @@ class ProjectAdmin(admin.ModelAdmin):
         "owner__first_name",
         "owner__last_name",
     )
-    ordering = ("-created_at",)
     filter_horizontal = (
         "participants",
         "favorites",

@@ -1,30 +1,16 @@
 import re
-from urllib.parse import urlparse
 
 from django import forms
 from django.contrib.auth import authenticate, password_validation
 from django.core.exceptions import ValidationError
 
+from core.constants import USER_FIELD_MAX_LENGTH
+from core.validators import validate_github_url
+
 from .models import User
 
 
-def validate_github_url(value):
-
-    if not value:
-        return value
-
-    host = urlparse(value).netloc.lower()
-
-    if host not in {"github.com", "www.github.com"}:
-        raise forms.ValidationError(
-            "Укажите ссылку на профиль GitHub."
-        )
-
-    return value
-
-
 def normalize_phone(value):
-
     if not value:
         return None
 
@@ -44,12 +30,12 @@ def normalize_phone(value):
 class RegistrationForm(forms.Form):
     name = forms.CharField(
         label="Имя",
-        max_length=124,
+        max_length=USER_FIELD_MAX_LENGTH,
         widget=forms.TextInput(attrs={"placeholder": "Имя"}),
     )
     surname = forms.CharField(
         label="Фамилия",
-        max_length=124,
+        max_length=USER_FIELD_MAX_LENGTH,
         widget=forms.TextInput(attrs={"placeholder": "Фамилия"}),
     )
     email = forms.EmailField(
@@ -126,9 +112,7 @@ class LoginForm(forms.Form):
                 )
 
             if not self.user.is_active:
-                raise forms.ValidationError(
-                    "Этот аккаунт заблокирован."
-                )
+                raise forms.ValidationError("Этот аккаунт заблокирован.")
 
         return cleaned_data
 
@@ -148,15 +132,6 @@ class ProfileEditForm(forms.ModelForm):
             "phone",
             "github_url",
         )
-        labels = {
-            "name": "Имя",
-            "surname": "Фамилия",
-            "avatar": "Аватар",
-            "about": "О себе",
-            "email": "Адрес электронной почты",
-            "phone": "Телефон",
-            "github_url": "GitHub",
-        }
         widgets = {
             "name": forms.TextInput(),
             "surname": forms.TextInput(),
@@ -204,5 +179,6 @@ class ProfileEditForm(forms.ModelForm):
 
     def clean_github_url(self):
         return validate_github_url(
-            self.cleaned_data.get("github_url")
+            self.cleaned_data.get("github_url"),
+            "Укажите ссылку на профиль GitHub.",
         )

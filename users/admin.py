@@ -1,38 +1,41 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Skill, User
+from .models import Skill
+
+
+User = get_user_model()
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    model = User
-
+class UserAdminConfig(UserAdmin):
     list_display = (
         "email",
         "name",
         "surname",
-        "is_active",
         "is_staff",
-        "date_joined",
+        "is_active",
     )
+
     list_filter = (
-        "is_active",
         "is_staff",
-        "skills",
+        "is_active",
+        "groups",
     )
-    ordering = ("-date_joined",)
-    search_fields = (
-        "email",
-        "name",
-        "surname",
-    )
-    filter_horizontal = ("skills",)
 
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
         (
-            "Личная информация",
+            None,
+            {
+                "fields": (
+                    "email",
+                    "password",
+                )
+            },
+        ),
+        (
+            "Персональная информация",
             {
                 "fields": (
                     "name",
@@ -57,7 +60,14 @@ class CustomUserAdmin(UserAdmin):
                 )
             },
         ),
-        ("Даты", {"fields": ("last_login", "date_joined")}),
+        (
+            "Важные даты",
+            {
+                "fields": (
+                    "last_login",
+                )
+            },
+        ),
     )
 
     add_fieldsets = (
@@ -78,9 +88,16 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
+    search_fields = (
+        "email",
+        "name",
+        "surname",
+    )
+
+    ordering = ("email",)
+
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
-    ordering = ("name",)

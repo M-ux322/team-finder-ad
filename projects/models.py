@@ -1,16 +1,21 @@
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
+
+from core.constants import PROJECT_NAME_MAX_LENGTH, PROJECT_STATUS_MAX_LENGTH
+
+max_length=PROJECT_NAME_MAX_LENGTH
+max_length=PROJECT_STATUS_MAX_LENGTH
 
 
 class Project(models.Model):
-
     class Status(models.TextChoices):
         OPEN = "open", "Открытый"
         CLOSED = "closed", "Закрытый"
 
     name = models.CharField(
         "Название проекта",
-        max_length=200,
+        max_length=PROJECT_NAME_MAX_LENGTH,
     )
     description = models.TextField(
         "Описание проекта",
@@ -32,7 +37,7 @@ class Project(models.Model):
     )
     status = models.CharField(
         "Статус",
-        max_length=6,
+        max_length=PROJECT_STATUS_MAX_LENGTH,
         choices=Status.choices,
         default=Status.OPEN,
     )
@@ -42,15 +47,12 @@ class Project(models.Model):
         related_name="participated_projects",
         blank=True,
     )
-
-    # Избранное оставляем, потому что оно есть в основном задании.
     favorites = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         verbose_name="В избранном у пользователей",
         related_name="favorite_projects",
         blank=True,
     )
-
     updated_at = models.DateTimeField(
         "Дата обновления",
         auto_now=True,
@@ -63,3 +65,9 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse(
+            "projects:detail",
+            kwargs={"project_id": self.id},
+        )
