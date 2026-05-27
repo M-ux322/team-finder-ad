@@ -1,25 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from core.services import paginate_queryset
+
 from .forms import ProjectForm
 from .models import Project
-
-
-PROJECTS_PER_PAGE = 12
-
-
-def user_can_manage_project(user, project):
-    return user.is_authenticated and (
-        user == project.owner or user.is_staff
-    )
-
-
-def get_page_obj(request, queryset, per_page=PROJECTS_PER_PAGE):
-    paginator = Paginator(queryset, per_page)
-    return paginator.get_page(request.GET.get("page"))
+from .services import user_can_manage_project
 
 
 def project_list_view(request):
@@ -35,8 +23,7 @@ def project_list_view(request):
         request,
         "projects/project_list.html",
         {
-            "page_obj": get_page_obj(request, projects),
-        },
+            "page_obj": paginate_queryset(request, projects),        },
     )
 
 

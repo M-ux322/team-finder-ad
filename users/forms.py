@@ -1,30 +1,10 @@
-import re
-
 from django import forms
 from django.contrib.auth import authenticate, password_validation
 from django.core.exceptions import ValidationError
 
 from core.constants import USER_FIELD_MAX_LENGTH
-from core.validators import validate_github_url
-
+from core.validators import normalize_phone, validate_github_url
 from .models import User
-
-
-def normalize_phone(value):
-    if not value:
-        return None
-
-    phone = value.strip().replace(" ", "").replace("-", "")
-
-    if re.fullmatch(r"8\d{10}", phone):
-        return "+7" + phone[1:]
-
-    if re.fullmatch(r"\+7\d{10}", phone):
-        return phone
-
-    raise forms.ValidationError(
-        "Введите номер в формате 8XXXXXXXXXX или +7XXXXXXXXXX."
-    )
 
 
 class RegistrationForm(forms.Form):

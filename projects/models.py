@@ -4,9 +4,6 @@ from django.urls import reverse
 
 from core.constants import PROJECT_NAME_MAX_LENGTH, PROJECT_STATUS_MAX_LENGTH
 
-max_length=PROJECT_NAME_MAX_LENGTH
-max_length=PROJECT_STATUS_MAX_LENGTH
-
 
 class Project(models.Model):
     class Status(models.TextChoices):

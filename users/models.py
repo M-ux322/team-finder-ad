@@ -8,16 +8,16 @@ from PIL import Image, ImageDraw, ImageFont
 
 from core.constants import (
     ABOUT_MAX_LENGTH,
+    AVATAR_BACKGROUND,
+    AVATAR_FONT_SIZE,
+    AVATAR_SIZE,
+    AVATAR_TEXT_COLOR,
+    AVATAR_VERTICAL_OFFSET,
     PHONE_MAX_LENGTH,
     USER_FIELD_MAX_LENGTH,
 )
 
 from .managers import UserManager
-
-
-AVATAR_SIZE = 200
-AVATAR_BACKGROUND = "#4A90E2"
-AVATAR_TEXT_COLOR = "#FFFFFF"
 
 
 class Skill(models.Model):
@@ -116,9 +116,14 @@ class User(AbstractUser):
         letter = self.name[0].upper()
 
         try:
-            font = ImageFont.truetype("arial.ttf", 100)
+            font = ImageFont.truetype(
+                "arial.ttf",
+                AVATAR_FONT_SIZE,
+            )
         except OSError:
-            font = ImageFont.load_default()
+            font = ImageFont.load_default(
+                size=AVATAR_FONT_SIZE,
+            )
 
         text_box = draw.textbbox((0, 0), letter, font=font)
         text_width = text_box[2] - text_box[0]
@@ -126,7 +131,7 @@ class User(AbstractUser):
 
         position = (
             (AVATAR_SIZE - text_width) / 2,
-            (AVATAR_SIZE - text_height) / 2 - 10,
+            (AVATAR_SIZE - text_height) / 2 - AVATAR_VERTICAL_OFFSET,
         )
 
         draw.text(
